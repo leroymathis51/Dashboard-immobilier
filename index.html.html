@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parc Immobilier — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f3;--bg3:#efefec;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9e9e9a;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+  --green:#1D9E75;--green-bg:#E1F5EE;--green-text:#0F6E56;
+  --red:#D85A30;--red-bg:#FAECE7;--red-text:#993C1D;
+  --amber:#BA7517;--amber-bg:#FAEEDA;--amber-text:#854F0B;
+  --blue:#378ADD;--blue-bg:#E6F1FB;--blue-text:#185FA5;
+  --purple:#7F77DD;
+  --radius:8px;--radius-lg:12px;
+  --font:'Inter',system-ui,sans-serif;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;
+    --text:#f0f0ed;--text2:#9e9e9a;--text3:#6b6b67;
+    --border:rgba(255,255,255,0.10);--border2:rgba(255,255,255,0.18);
+    --green-bg:#04342C;--green-text:#5DCAA5;
+    --red-bg:#4A1B0C;--red-text:#F0997B;
+    --amber-bg:#412402;--amber-text:#EF9F27;
+    --blue-bg:#042C53;--blue-text:#85B7EB;
+  }
+}
+body{font-family:var(--font);background:var(--bg3);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+a{color:inherit;text-decoration:none}
+input,select,textarea{font-family:var(--font);font-size:13px;background:var(--bg);color:var(--text);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 10px;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--blue)}
+button{font-family:var(--font);cursor:pointer;font-size:13px}
+
+/* LAYOUT */
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;flex-shrink:0;background:var(--bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:0.5px solid var(--border)}
+.sidebar-logo h1{font-size:15px;font-weight:600;color:var(--text)}
+.sidebar-logo p{font-size:11px;color:var(--text3);margin-top:2px}
+.sidebar-nav{flex:1;padding:12px 8px;overflow-y:auto}
+.nav-section{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:8px 10px 4px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--radius);color:var(--text2);font-size:13px;cursor:pointer;transition:all .12s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--bg2);color:var(--text)}
+.nav-item.active{background:var(--bg2);color:var(--text);font-weight:500}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8}
+.sidebar-footer{padding:12px 8px;border-top:0.5px solid var(--border)}
+.sidebar-kpi{padding:10px 12px;background:var(--bg2);border-radius:var(--radius);margin-bottom:6px}
+.sidebar-kpi-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.sidebar-kpi-val{font-size:16px;font-weight:600;color:var(--text)}
+.main{margin-left:220px;flex:1;min-height:100vh}
+.topbar{background:var(--bg);border-bottom:0.5px solid var(--border);padding:12px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+.topbar-title{font-size:15px;font-weight:500;color:var(--text)}
+.topbar-sub{font-size:12px;color:var(--text3);margin-top:1px}
+.topbar-actions{display:flex;gap:8px}
+.btn{padding:7px 14px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg);color:var(--text);font-size:13px;cursor:pointer;transition:all .12s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--bg2)}
+.btn-primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+.btn-primary:hover{opacity:.88}
+.btn-danger{background:var(--red-bg);color:var(--red-text);border-color:transparent}
+.content{padding:24px 28px;max-width:1100px}
+.section{display:none}.section.active{display:block}
+
+/* CARDS & GRID */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:16px}
+.card-title{font-size:12px;color:var(--text2);font-weight:500;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--bg2);border-radius:var(--radius);padding:14px 16px}
+.kpi-label{font-size:11px;color:var(--text3);margin-bottom:5px}
+.kpi-value{font-size:22px;font-weight:600;color:var(--text)}
+.kpi-sub{font-size:11px;margin-top:3px;color:var(--text3)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;font-size:11px;padding:2px 8px;border-radius:var(--radius);font-weight:500}
+.badge-ok{background:var(--green-bg);color:var(--green-text)}
+.badge-warn{background:var(--amber-bg);color:var(--amber-text)}
+.badge-bad{background:var(--red-bg);color:var(--red-text)}
+.badge-info{background:var(--blue-bg);color:var(--blue-text)}
+.green{color:var(--green)}.red{color:var(--red)}.amber{color:var(--amber)}.blue{color:var(--blue)}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{font-size:11px;color:var(--text3);text-align:left;padding:8px 10px;border-bottom:0.5px solid var(--border);font-weight:500;white-space:nowrap}
+.data-table th.r,.data-table td.r{text-align:right}
+.data-table td{padding:10px 10px;border-bottom:0.5px solid var(--border);color:var(--text);vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--bg2)}
+.data-table tfoot td{font-weight:600;border-top:0.5px solid var(--border2);border-bottom:none;background:var(--bg2)}
+
+/* PROGRESS */
+.progress{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;border-radius:3px;transition:width .4s}
+
+/* ALERT */
+.alert{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:var(--radius);margin-bottom:8px;font-size:13px}
+.alert-warn{background:var(--amber-bg);color:var(--amber-text)}
+.alert-info{background:var(--blue-bg);color:var(--blue-text)}
+.alert-danger{background:var(--red-bg);color:var(--red-text)}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:12px;color:var(--text2);font-weight:500}
+.form-label span{color:var(--red);margin-left:2px}
+.form-input{width:100%}
+.form-section{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);font-weight:600;padding:14px 0 8px;border-top:0.5px solid var(--border);margin-top:4px}
+.form-section:first-child{border-top:none;padding-top:0}
+
+/* BIEN ROW */
+.bien-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border)}
+.bien-row:last-child{border-bottom:none}
+.bien-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.bien-info{flex:1;min-width:0}
+.bien-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bien-meta{font-size:11px;color:var(--text3)}
+.bien-actions{display:flex;gap:6px;flex-shrink:0}
+.icon-btn{width:28px;height:28px;border-radius:var(--radius);border:0.5px solid var(--border);background:transparent;color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s}
+.icon-btn:hover{background:var(--bg2);color:var(--text)}
+.icon-btn.del:hover{background:var(--red-bg);color:var(--red-text);border-color:transparent}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg);border-radius:var(--radius-lg);border:0.5px solid var(--border2);width:100%;max-width:600px;max-height:90vh;display:flex;flex-direction:column}
+.modal-header{padding:16px 20px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-header h3{font-size:15px;font-weight:500}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-footer{padding:14px 20px;border-top:0.5px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+
+/* SIMULATION */
+.sim-input-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.sim-result{background:var(--bg2);border-radius:var(--radius-lg);padding:20px;margin-top:16px}
+.sim-result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.sim-kpi{text-align:center}
+.sim-kpi-val{font-size:24px;font-weight:700}
+.sim-kpi-label{font-size:11px;color:var(--text3);margin-top:3px}
+.verdict{padding:12px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;text-align:center;margin-top:12px}
+.verdict-good{background:var(--green-bg);color:var(--green-text)}
+.verdict-avg{background:var(--amber-bg);color:var(--amber-text)}
+.verdict-bad{background:var(--red-bg);color:var(--red-text)}
+
+/* LEGEND */
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--text2);margin-bottom:10px}
+.legend span{display:flex;align-items:center;gap:5px}
+.leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .main{margin-left:0}
+  .two-col,.three-col,.form-grid,.form-grid-3,.sim-input-row{grid-template-columns:1fr}
+  .sim-result-grid{grid-template-columns:1fr 1fr}
+  .content{padding:16px}
+}
+
+/* PRINT */
+@media print{.sidebar,.topbar{display:none}.main{margin:0}.content{padding:0}}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-icon{font-size:36px;margin-bottom:10px}
+.empty p{font-size:13px}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>🏢 ImmoTrack</h1>
+    <p id="sidebar-owner">Mon portefeuille</p>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Tableau de bord</div>
+    <button class="nav-item active" onclick="showSection('overview',this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Vue globale
+    </button>
+    <button class="nav-item" onclick="showSection('biens',this)">
+      <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+      Mes biens
+    </button>
+    <button class="nav-item" onclick="showSection('cashflow',this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Suivi mensuel
+    </button>
+    <button class="nav-item" onclick="showSection('rentabilite',this)">
+      <svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      Rentabilité
+    </button>
+    <div class="nav-section">Outils</div>
+    <button class="nav-item" onclick="showSection('simulation',this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+      Simulation achat
+    </button>
+    <button class="nav-item" onclick="showSection('import',this)">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/><path d="M4 20h16"/></svg>
+      Ajouter un bien
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-kpi">
+      <div class="sidebar-kpi-label">Parc total</div>
+      <div class="sidebar-kpi-val" id="sb-valeur">—</div>
+    </div>
+    <div class="sidebar-kpi">
+      <div class="sidebar-kpi-label">Cashflow net/mois</div>
+      <div class="sidebar-kpi-val" id="sb-cf">—</div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Vue globale</div>
+      <div class="topbar-sub" id="topbar-sub">Chargement...</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn" onclick="exportCSV()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </button>
+      <button class="btn btn-primary" onclick="showSection('import',document.querySelector('[onclick*=import]'))">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Ajouter un bien
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ===== OVERVIEW ===== -->
+    <section id="overview" class="section active">
+      <div class="kpi-grid" id="ov-kpis"></div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+            Répartition par type
+          </div>
+          <div class="legend" id="type-legend"></div>
+          <div style="position:relative;height:190px"><canvas id="chartType" role="img" aria-label="Répartition du parc par type de bien"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
+            Cashflow mensuel — 6 mois
+          </div>
+          <div style="position:relative;height:210px"><canvas id="chartCash" role="img" aria-label="Cashflow net mensuel des 6 derniers mois"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Synthèse du parc</div>
+        <div id="ov-bien-list"></div>
+      </div>
+      <div class="card" id="alertes-card">
+        <div class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Alertes & échéances
+        </div>
+        <div id="alertes-list"></div>
+      </div>
+    </section>
+
+    <!-- ===== BIENS ===== -->
+    <section id="biens" class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:13px;color:var(--text2)" id="biens-count"></div>
+        <button class="btn btn-primary" onclick="openModal('add')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nouveau bien
+        </button>
+      </div>
+      <div id="biens-cards"></div>
+    </section>
+
+    <!-- ===== CASHFLOW ===== -->
+    <section id="cashflow" class="section">
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)" id="cf-kpis"></div>
+      <div class="card">
+        <div class="card-title">Suivi mensuel 2026</div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr>
+              <th>Mois</th><th class="r">Loyers</th><th class="r">Charges</th><th class="r">Crédit</th><th class="r">Travaux</th><th class="r">Net</th><th class="r">Cumul</th>
+            </tr></thead>
+            <tbody id="cf-tbody"></tbody>
+            <tfoot><tr id="cf-tfoot"></tr></tfoot>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Revenus vs charges — 2026</div>
+        <div class="legend">
+          <span><span class="leg-dot" style="background:#1D9E75"></span>Loyers</span>
+          <span><span class="leg-dot" style="background:#D85A30"></span>Charges totales</span>
+        </div>
+        <div style="position:relative;height:260px"><canvas id="chartMonthly" role="img" aria-label="Revenus et charges mensuels 2026"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ===== RENTABILITE ===== -->
+    <section id="rentabilite" class="section">
+      <div class="three-col" id="rend-kpis"></div>
+      <div class="card">
+        <div class="card-title">Rendement brut vs net — par bien</div>
+        <div class="legend">
+          <span><span class="leg-dot" style="background:#378ADD"></span>Rendement brut</span>
+          <span><span class="leg-dot" style="background:#1D9E75"></span>Rendement net</span>
+        </div>
+        <div style="position:relative" id="rend-chart-wrap"><canvas id="chartRend" role="img" aria-label="Comparaison des rendements par bien"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Analyse détaillée par bien</div>
+        <select id="rend-select" onchange="renderBienDetail()" style="margin-bottom:14px;width:260px"></select>
+        <div id="rend-bien-detail"></div>
+      </div>
+    </section>
+
+    <!-- ===== SIMULATION ===== -->
+    <section id="simulation" class="section">
+      <div class="card">
+        <div class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+          Simuler un nouvel achat immobilier
+        </div>
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label">Prix d'achat (€)<span>*</span></label>
+            <input type="number" id="s-prix" class="form-input" value="250000" oninput="runSim()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Apport personnel (€)</label>
+            <input type="number" id="s-apport" class="form-input" value="50000" oninput="runSim()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Frais de notaire (€)</label>
+            <input type="number" id="s-notaire" class="form-input" value="18000" oninput="runSim()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Loyer mensuel espéré (€)</label>
+            <input type="number" id="s-loyer" class="form-input" value="1100" oninput="runSim()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Charges mensuelles (€)</label>
+            <input type="number" id="s-charges" class="form-input" value="150" oninput="runSim()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Travaux à prévoir (€)</label>
+            <input type="number" id="s-travaux" class="form-input" value="0" oninput="runSim()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Taux crédit (%)</label>
+            <input type="number" id="s-taux" class="form-input" value="3.6" step="0.1" oninput="runSim()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Durée crédit (années)</label>
+            <input type="number" id="s-duree" class="form-input" value="20" oninput="runSim()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Vacance locative (%/an)</label>
+            <input type="number" id="s-vacance" class="form-input" value="5" oninput="runSim()">
+          </div>
+        </div>
+        <div class="sim-result" id="sim-result"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Projection sur 20 ans</div>
+        <div style="position:relative;height:280px"><canvas id="chartSim" role="img" aria-label="Projection financière sur 20 ans"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Impact sur le parc existant</div>
+        <div id="sim-impact"></div>
+      </div>
+    </section>
+
+    <!-- ===== IMPORT / AJOUTER ===== -->
+    <section id="import" class="section">
+      <div class="two-col" style="align-items:start">
+        <div>
+          <div class="card">
+            <div class="card-title">Ajouter un bien manuellement</div>
+            <div id="add-form"></div>
+            <div style="display:flex;gap:8px;margin-top:4px">
+              <button class="btn btn-primary" onclick="saveBien()">Enregistrer le bien</button>
+              <button class="btn" onclick="resetForm()">Réinitialiser</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title">Import CSV</div>
+            <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Importez plusieurs biens d'un coup via un fichier CSV.</p>
+            <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="importCSV(this)">
+            <button class="btn" onclick="document.getElementById('csv-input').click()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Choisir un fichier CSV
+            </button>
+            <div style="margin-top:14px;padding:12px;background:var(--bg2);border-radius:var(--radius);font-size:12px;color:var(--text3)">
+              <strong style="color:var(--text2);display:block;margin-bottom:6px">Format attendu (colonnes) :</strong>
+              nom, type, surface, ville, prix_achat, valeur_actuelle, loyer, charges, credit, vacant (0/1), rend_brut, rend_net, locataire, bail, dpe
+            </div>
+            <button class="btn" onclick="downloadTemplate()" style="margin-top:10px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Télécharger le modèle CSV
+            </button>
+          </div>
+          <div class="card">
+            <div class="card-title">Biens enregistrés</div>
+            <div id="import-bien-list"></div>
+            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn" onclick="loadDemo()">Charger les données démo</button>
+              <button class="btn btn-danger" onclick="clearAll()">Tout effacer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /content -->
+</main>
+
+<!-- MODAL ÉDITION -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Modifier le bien</h3>
+      <button class="icon-btn" onclick="closeModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveModal()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const COLORS=['#378ADD','#1D9E75','#7F77DD','#BA7517','#D85A30','#534AB7','#888780','#E24B4A','#0F6E56','#633806'];
+const DEMO=[
+  {id:1,name:"Studio Oberkampf",type:"Studio",surface:28,ville:"Paris 11e",achat:185000,valeur:210000,loyer:820,charges:120,credit:480,vacant:false,rend_brut:5.3,rend_net:6.1,locataire:"M. Arnaud",bail:"2024-09",dpe:"E"},
+  {id:2,name:"T2 Nation",type:"T2",surface:42,ville:"Paris 12e",achat:295000,valeur:330000,loyer:1250,charges:180,credit:820,vacant:false,rend_brut:5.1,rend_net:4.6,locataire:"Mme Dupont",bail:"2023-04",dpe:"D"},
+  {id:3,name:"T2 Belleville",type:"T2",surface:38,ville:"Paris 20e",achat:255000,valeur:275000,loyer:1080,charges:160,credit:710,vacant:false,rend_brut:5.1,rend_net:4.4,locataire:"M. & Mme Chen",bail:"2022-11",dpe:"C"},
+  {id:4,name:"Studio Pigalle",type:"Studio",surface:24,ville:"Paris 9e",achat:198000,valeur:220000,loyer:780,charges:130,credit:550,vacant:false,rend_brut:4.7,rend_net:3.8,locataire:"Mme Lefebvre",bail:"2025-01",dpe:"D"},
+  {id:5,name:"T3 Vincennes",type:"T3",surface:65,ville:"Vincennes",achat:380000,valeur:405000,loyer:1680,charges:280,credit:1050,vacant:false,rend_brut:5.3,rend_net:4.1,locataire:"Famille Martin",bail:"2021-07",dpe:"C"},
+  {id:6,name:"Local Bastille",type:"Commercial",surface:55,ville:"Paris 11e",achat:320000,valeur:350000,loyer:1950,charges:200,credit:980,vacant:false,rend_brut:7.3,rend_net:5.9,locataire:"SARL Café Bleu",bail:"2020-03",dpe:"D"},
+  {id:7,name:"Studio Stalingrad",type:"Studio",surface:22,ville:"Paris 19e",achat:148000,valeur:162000,loyer:0,charges:90,credit:390,vacant:true,rend_brut:0,rend_net:0,locataire:"Vacant",bail:"—",dpe:"F"}
+];
+
+let biens=JSON.parse(localStorage.getItem('immotrack_biens')||'null')||JSON.parse(JSON.stringify(DEMO));
+let editIdx=null;
+let charts={};
+const MONTHS=['Janv.','Févr.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'];
+const MONTHS6=['Janv','Févr','Mars','Avr','Mai','Juin'];
+
+function save(){localStorage.setItem('immotrack_biens',JSON.stringify(biens));refresh()}
+
+function fmt(n){return n==null?'—':new Intl.NumberFormat('fr-FR').format(Math.round(n))+'€'}
+function fmtK(n){return Math.round(n/1000)+'k€'}
+function fmtP(n){return n==null?'—':n.toFixed(1)+'%'}
+function color(i){return COLORS[i%COLORS.length]}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const TITLES={overview:'Vue globale',biens:'Mes biens',cashflow:'Suivi mensuel',rentabilite:'Rentabilité',simulation:'Simulation achat',import:'Ajouter un bien'};
+function showSection(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  document.getElementById('topbar-title').textContent=TITLES[id]||id;
+  renderSection(id);
+}
+
+function renderSection(id){
+  if(id==='overview')renderOverview();
+  else if(id==='biens')renderBiens();
+  else if(id==='cashflow')renderCashflow();
+  else if(id==='rentabilite')renderRentabilite();
+  else if(id==='simulation'){renderSimImpact();runSim();}
+  else if(id==='import')renderImport();
+}
+
+function refresh(){
+  updateSidebar();
+  const active=document.querySelector('.section.active');
+  if(active)renderSection(active.id);
+}
+
+// ============================================================
+// SIDEBAR
+// ============================================================
+function updateSidebar(){
+  const total=biens.reduce((s,b)=>s+b.valeur,0);
+  const cf=biens.reduce((s,b)=>s+(b.vacant?0:b.loyer-b.charges-b.credit),0);
+  document.getElementById('sb-valeur').textContent=fmtK(total);
+  document.getElementById('sb-cf').innerHTML=`<span class="${cf>=0?'green':'red'}">${cf>=0?'+':''}${fmt(cf).replace('€','')}</span>&thinsp;€`;
+  document.getElementById('sidebar-owner').textContent=`${biens.length} bien${biens.length>1?'s':''}`;
+  const sub=`${biens.length} bien${biens.length>1?'s':', '}${biens.filter(b=>!b.vacant).length} loué${biens.filter(b=>!b.vacant).length>1?'s':''}`;
+  document.getElementById('topbar-sub').textContent=sub;
+}
+
+// ============================================================
+// OVERVIEW
+// ============================================================
+function renderOverview(){
+  const total=biens.reduce((s,b)=>s+b.valeur,0);
+  const loyers=biens.reduce((s,b)=>s+(b.vacant?0:b.loyer),0);
+  const cf=biens.reduce((s,b)=>s+(b.vacant?0:b.loyer-b.charges-b.credit),0);
+  const rendAvg=biens.filter(b=>!b.vacant).length?biens.filter(b=>!b.vacant).reduce((s,b)=>s+b.rend_net,0)/biens.filter(b=>!b.vacant).length:0;
+  const occ=biens.length?((biens.filter(b=>!b.vacant).length/biens.length)*100):0;
+
+  document.getElementById('ov-kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Valeur du parc</div><div class="kpi-value">${fmtK(total)}</div><div class="kpi-sub green">+4,2% sur 12 mois</div></div>
+    <div class="kpi"><div class="kpi-label">Loyers/mois</div><div class="kpi-value">${fmt(loyers)}</div><div class="kpi-sub" style="color:var(--text3)">encaissés</div></div>
+    <div class="kpi"><div class="kpi-label">Cashflow net/mois</div><div class="kpi-value ${cf>=0?'green':'red'}">${cf>=0?'+':''}${fmt(cf)}</div><div class="kpi-sub" style="color:var(--text3)">après charges et crédit</div></div>
+    <div class="kpi"><div class="kpi-label">Rendement net moyen</div><div class="kpi-value">${fmtP(rendAvg)}</div><div class="kpi-sub amber">Calculé sur biens loués</div></div>
+    <div class="kpi"><div class="kpi-label">Taux d'occupation</div><div class="kpi-value">${Math.round(occ)}%</div><div class="kpi-sub ${occ>=90?'green':'amber'}">${biens.filter(b=>!b.vacant).length} / ${biens.length} loués</div></div>
+  `;
+
+  // Type chart
+  const types={};
+  biens.forEach(b=>{types[b.type]=(types[b.type]||0)+1});
+  const tkeys=Object.keys(types);
+  document.getElementById('type-legend').innerHTML=tkeys.map((t,i)=>`<span><span class="leg-dot" style="background:${COLORS[i]}"></span>${t} (×${types[t]})</span>`).join('');
+  destroyChart('chartType');
+  charts.chartType=new Chart(document.getElementById('chartType'),{
+    type:'doughnut',
+    data:{labels:tkeys,datasets:[{data:tkeys.map(t=>types[t]),backgroundColor:tkeys.map((_,i)=>COLORS[i]),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+  });
+
+  // Cashflow 6 mois
+  const baseCF=cf;
+  const cfData=MONTHS6.map((_,i)=>baseCF+Math.round((Math.random()-.4)*300));
+  destroyChart('chartCash');
+  charts.chartCash=new Chart(document.getElementById('chartCash'),{
+    type:'bar',
+    data:{labels:MONTHS6,datasets:[{label:'Cashflow',data:cfData,backgroundColor:cfData.map(v=>v>=0?'#1D9E75':'#D85A30'),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'€'}}}}
+  });
+
+  // Liste biens
+  document.getElementById('ov-bien-list').innerHTML=biens.length?biens.map((b,i)=>`
+    <div class="bien-row">
+      <div class="bien-dot" style="background:${color(i)}"></div>
+      <div class="bien-info">
+        <div class="bien-name">${b.name}</div>
+        <div class="bien-meta">${b.type} · ${b.surface}m² · ${b.ville}</div>
+      </div>
+      <div style="text-align:right;margin-right:16px;flex-shrink:0">
+        <div style="font-size:11px;color:var(--text3)">Valeur</div>
+        <div style="font-size:13px;font-weight:500">${fmtK(b.valeur)}</div>
+      </div>
+      <div style="text-align:right;min-width:90px;flex-shrink:0">
+        <div style="font-size:13px;font-weight:500">${b.vacant?'<span class="red">Vacant</span>':fmt(b.loyer)+'/mois'}</div>
+        <div style="font-size:11px" class="${b.vacant?'red':b.rend_net>5?'green':'amber'}">${b.vacant?'—':fmtP(b.rend_net)+' net'}</div>
+      </div>
+    </div>`).join(''):`<div class="empty"><div class="empty-icon">🏘️</div><p>Aucun bien. <a href="#" onclick="showSection('import',null)" style="color:var(--blue)">Ajoutez votre premier bien</a></p></div>`;
+
+  // Alertes
+  const alertes=[];
+  biens.forEach(b=>{
+    if(b.dpe==='F'||b.dpe==='G')alertes.push({type:'danger',msg:`DPE ${b.dpe} — ${b.name} : passoire thermique, location interdite dès 2025`,delay:'Urgent'});
+    if(b.dpe==='E')alertes.push({type:'warn',msg:`DPE E — ${b.name} : renouvellement conseillé`,delay:'dans 2 mois'});
+    if(b.vacant)alertes.push({type:'danger',msg:`${b.name} vacant — aucun loyer encaissé`,delay:'Immédiat'});
+  });
+  if(!alertes.length)alertes.push({type:'info',msg:'Aucune alerte active — parc en ordre ✓',delay:''});
+  document.getElementById('alertes-list').innerHTML=alertes.map(a=>`
+    <div class="alert alert-${a.type}">
+      <span>${a.msg}</span>
+      ${a.delay?`<span class="badge badge-${a.type==='info'?'info':a.type==='warn'?'warn':'bad'}">${a.delay}</span>`:''}
+    </div>`).join('');
+}
+
+// ============================================================
+// BIENS
+// ============================================================
+function renderBiens(){
+  document.getElementById('biens-count').textContent=`${biens.length} bien${biens.length>1?'s':''} dans le portefeuille`;
+  document.getElementById('biens-cards').innerHTML=biens.length?biens.map((b,i)=>`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${color(i)};flex-shrink:0"></div>
+          <div>
+            <div style="font-size:15px;font-weight:500">${b.name}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">${b.type} · ${b.surface}m² · ${b.ville} · DPE ${b.dpe}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${b.vacant?'badge-bad':'badge-ok'}">${b.vacant?'Vacant':'Loué'}</span>
+          <button class="icon-btn" onclick="openModal('edit',${i})" title="Modifier">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn del" onclick="deleteBien(${i})" title="Supprimer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+        <div class="kpi" style="padding:10px 12px"><div class="kpi-label" style="font-size:11px">Loyer</div><div style="font-size:16px;font-weight:600">${b.vacant?'<span class="red">—</span>':fmt(b.loyer)}</div></div>
+        <div class="kpi" style="padding:10px 12px"><div class="kpi-label" style="font-size:11px">Valeur</div><div style="font-size:16px;font-weight:600">${fmtK(b.valeur)}</div></div>
+        <div class="kpi" style="padding:10px 12px"><div class="kpi-label" style="font-size:11px">Rend. brut</div><div style="font-size:16px;font-weight:600" class="${b.vacant?'red':b.rend_brut>6?'green':'amber'}">${b.vacant?'—':fmtP(b.rend_brut)}</div></div>
+        <div class="kpi" style="padding:10px 12px"><div class="kpi-label" style="font-size:11px">Rend. net</div><div style="font-size:16px;font-weight:600" class="${b.vacant?'red':b.rend_net>5?'green':'amber'}">${b.vacant?'—':fmtP(b.rend_net)}</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--text3)">
+        <span>👤 ${b.locataire}</span>
+        <span>📅 Bail: ${b.bail}</span>
+        <span>💳 Crédit: ${fmt(b.credit)}/mois</span>
+        <span>🔧 Charges: ${fmt(b.charges)}/mois</span>
+        ${!b.vacant?`<span>💰 Net: <strong class="${b.loyer-b.charges-b.credit>=0?'green':'red'}">${b.loyer-b.charges-b.credit>=0?'+':''}${fmt(b.loyer-b.charges-b.credit)}</strong>/mois</span>`:''}
+      </div>
+      ${!b.vacant?`<div style="margin-top:10px"><div class="progress"><div class="progress-fill" style="width:${Math.min(100,Math.round((b.loyer/(b.charges+b.credit||1))*45))}%;background:${b.rend_net>5?'#1D9E75':'#BA7517'}"></div></div></div>`:''}
+    </div>`).join(''):`<div class="empty"><div class="empty-icon">🏘️</div><p>Aucun bien enregistré. <a href="#" onclick="showSection('import',null)" style="color:var(--blue)">Ajouter un bien</a></p></div>`;
+}
+
+// ============================================================
+// CASHFLOW
+// ============================================================
+function renderCashflow(){
+  const loyersM=biens.reduce((s,b)=>s+(b.vacant?0:b.loyer),0);
+  const chargesM=biens.reduce((s,b)=>s+b.charges,0);
+  const creditM=biens.reduce((s,b)=>s+b.credit,0);
+  const netM=loyersM-chargesM-creditM;
+  document.getElementById('cf-kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Loyers encaissés YTD</div><div class="kpi-value">${fmt(loyersM*6)}</div></div>
+    <div class="kpi"><div class="kpi-label">Charges totales YTD</div><div class="kpi-value red">-${fmt((chargesM+creditM)*6)}</div></div>
+    <div class="kpi"><div class="kpi-label">Net YTD</div><div class="kpi-value ${netM>=0?'green':'red'}">${netM>=0?'+':''}${fmt(netM*6)}</div></div>
+  `;
+
+  let cumul=0;
+  const rows=MONTHS6.map((m,i)=>{
+    const travaux=i===1?800:i===4?1200:0;
+    const net=loyersM-chargesM-creditM-travaux;
+    cumul+=net;
+    return {m,loyers:loyersM,charges:chargesM,credit:creditM,travaux,net,cumul};
+  });
+
+  document.getElementById('cf-tbody').innerHTML=rows.map(r=>`
+    <tr>
+      <td>${r.m}</td>
+      <td class="r">${fmt(r.loyers)}</td>
+      <td class="r red">-${fmt(r.charges)}</td>
+      <td class="r red">-${fmt(r.credit)}</td>
+      <td class="r ${r.travaux?'red':''}">  ${r.travaux?'-'+fmt(r.travaux):'—'}</td>
+      <td class="r ${r.net>=0?'green':'red'}">${r.net>=0?'+':''}${fmt(r.net)}</td>
+      <td class="r" style="color:var(--text3)">${r.cumul>=0?'+':''}${fmt(r.cumul)}</td>
+    </tr>`).join('');
+
+  const totNet=rows.reduce((s,r)=>s+r.net,0);
+  document.getElementById('cf-tfoot').innerHTML=`
+    <td>Total</td>
+    <td class="r">${fmt(rows.reduce((s,r)=>s+r.loyers,0))}</td>
+    <td class="r red">-${fmt(rows.reduce((s,r)=>s+r.charges,0))}</td>
+    <td class="r red">-${fmt(rows.reduce((s,r)=>s+r.credit,0))}</td>
+    <td class="r red">-${fmt(rows.reduce((s,r)=>s+r.travaux,0))}</td>
+    <td class="r ${totNet>=0?'green':'red'}">${totNet>=0?'+':''}${fmt(totNet)}</td>
+    <td></td>`;
+
+  destroyChart('chartMonthly');
+  charts.chartMonthly=new Chart(document.getElementById('chartMonthly'),{
+    type:'bar',
+    data:{
+      labels:MONTHS6,
+      datasets:[
+        {label:'Loyers',data:rows.map(r=>r.loyers),backgroundColor:'#1D9E75',borderRadius:3},
+        {label:'Charges',data:rows.map(r=>-(r.charges+r.credit+r.travaux)),backgroundColor:'#D85A30',borderRadius:3}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmt(v)}}}}
+  });
+}
+
+// ============================================================
+// RENTABILITE
+// ============================================================
+function renderRentabilite(){
+  const bestB=biens.filter(b=>!b.vacant).sort((a,b)=>b.rend_net-a.rend_net)[0];
+  const pv=biens.reduce((s,b)=>s+(b.valeur-b.achat),0);
+  const avgTRI=biens.filter(b=>!b.vacant).length?(biens.filter(b=>!b.vacant).reduce((s,b)=>s+b.rend_net,0)/biens.filter(b=>!b.vacant).length+3.2).toFixed(1):0;
+
+  document.getElementById('rend-kpis').innerHTML=`
+    <div class="card" style="margin-bottom:0"><div class="kpi-label">Meilleur rendement net</div><div style="font-size:14px;font-weight:500;margin-top:6px">${bestB?bestB.name:'—'}</div><div class="kpi-value green" style="font-size:20px;margin-top:4px">${bestB?fmtP(bestB.rend_net):'—'}</div></div>
+    <div class="card" style="margin-bottom:0"><div class="kpi-label">Plus-value latente totale</div><div style="font-size:14px;font-weight:500;margin-top:6px">Ensemble du parc</div><div class="kpi-value green" style="font-size:20px;margin-top:4px">+${fmtK(pv)}</div></div>
+    <div class="card" style="margin-bottom:0"><div class="kpi-label">TRI estimé (10 ans)</div><div style="font-size:14px;font-weight:500;margin-top:6px">Portefeuille global</div><div class="kpi-value" style="font-size:20px;margin-top:4px">${avgTRI}%</div></div>
+  `;
+
+  const h=Math.max(200,biens.length*45+60);
+  document.getElementById('rend-chart-wrap').style.height=h+'px';
+  destroyChart('chartRend');
+  charts.chartRend=new Chart(document.getElementById('chartRend'),{
+    type:'bar',
+    data:{
+      labels:biens.map(b=>b.name),
+      datasets:[
+        {label:'Brut',data:biens.map(b=>b.rend_brut),backgroundColor:'#378ADD',borderRadius:3},
+        {label:'Net',data:biens.map(b=>b.rend_net),backgroundColor:'#1D9E75',borderRadius:3}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>v+'%'}}}}
+  });
+
+  const sel=document.getElementById('rend-select');
+  sel.innerHTML=biens.map((b,i)=>`<option value="${i}">${b.name}</option>`).join('');
+  renderBienDetail();
+}
+
+function renderBienDetail(){
+  const i=parseInt(document.getElementById('rend-select').value||0);
+  const b=biens[i];if(!b)return;
+  const cf=b.loyer-b.charges-b.credit;
+  document.getElementById('rend-bien-detail').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div>
+        <table class="data-table">
+          ${[["Prix d'achat",fmt(b.achat)],["Valeur actuelle",fmt(b.valeur)],["Plus-value latente",`<span class="green">+${fmt(b.valeur-b.achat)}</span>`],["Loyer mensuel",b.vacant?'<span class="red">Vacant</span>':fmt(b.loyer)],["Charges/mois",fmt(b.charges)],["Crédit/mois",fmt(b.credit)],["Cashflow net/mois",`<span class="${cf>=0?'green':'red'}">${cf>=0?'+':''}${fmt(cf)}</span>`]]
+          .map(([k,v])=>`<tr><td style="color:var(--text3)">${k}</td><td class="r">${v}</td></tr>`).join('')}
+        </table>
+      </div>
+      <div>
+        ${[["Rendement brut",b.rend_brut,8],["Rendement net",b.rend_net,6],["TRI estimé 10 ans",b.vacant?0:(b.rend_net+3.2).toFixed(1),10]]
+        .map(([k,v,max])=>`
+          <div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
+              <span style="color:var(--text2)">${k}</span>
+              <span style="font-weight:500" class="${b.vacant||v==0?'red':v>5?'green':'amber'}">${b.vacant&&k!='TRI estimé 10 ans'?'—':v+'%'}</span>
+            </div>
+            <div class="progress"><div class="progress-fill" style="width:${b.vacant?0:Math.min(100,(v/max)*100)}%;background:${b.vacant?'#888':v>5?'#1D9E75':'#BA7517'}"></div></div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// SIMULATION
+// ============================================================
+let simChart=null;
+function runSim(){
+  const prix=+document.getElementById('s-prix').value||0;
+  const apport=+document.getElementById('s-apport').value||0;
+  const notaire=+document.getElementById('s-notaire').value||0;
+  const loyer=+document.getElementById('s-loyer').value||0;
+  const charges=+document.getElementById('s-charges').value||0;
+  const travaux=+document.getElementById('s-travaux').value||0;
+  const taux=+document.getElementById('s-taux').value||0;
+  const duree=+document.getElementById('s-duree').value||20;
+  const vacance=+document.getElementById('s-vacance').value||0;
+
+  const emprunt=prix-apport+notaire+travaux;
+  const tauxM=taux/100/12;
+  const n=duree*12;
+  const mensualite=tauxM>0?emprunt*(tauxM*Math.pow(1+tauxM,n))/(Math.pow(1+tauxM,n)-1):emprunt/n;
+  const loyerNet=loyer*(1-vacance/100);
+  const rendBrut=prix>0?(loyer*12/prix*100):0;
+  const loyerAnnuelNet=(loyerNet-charges)*12;
+  const coutTotal=prix+notaire+travaux;
+  const rendNet=coutTotal>0?(loyerAnnuelNet/coutTotal*100):0;
+  const cfNet=loyerNet-charges-mensualite;
+
+  let tri=0;
+  if(loyerAnnuelNet>0&&coutTotal>0){
+    let lo=0,hi=30;
+    for(let iter=0;iter<50;iter++){
+      const mid=(lo+hi)/2;
+      let pv=-apport-notaire-travaux;
+      for(let y=1;y<=duree;y++){
+        pv+=(loyerAnnuelNet-mensualite*12)/Math.pow(1+mid/100,y);
+      }
+      pv+=prix*Math.pow(1.02,duree)/Math.pow(1+mid/100,duree);
+      if(pv>0)lo=mid;else hi=mid;
+    }
+    tri=(lo+hi)/2;
+  }
+
+  const verdict=rendNet>=5?'good':rendNet>=3?'avg':'bad';
+  const verdictTxt=rendNet>=5?`✅ Investissement solide — rendement net de ${fmtP(rendNet)} supérieur au seuil des 5%`:
+    rendNet>=3?`⚠️ Investissement correct — rendement net de ${fmtP(rendNet)}, surveillez les charges`:
+    `❌ Rendement insuffisant — ${fmtP(rendNet)} net, en dessous du seuil de rentabilité`;
+
+  document.getElementById('sim-result').innerHTML=`
+    <div class="sim-result-grid">
+      <div class="sim-kpi"><div class="sim-kpi-val ${rendNet>=5?'green':rendNet>=3?'amber':'red'}">${fmtP(rendNet)}</div><div class="sim-kpi-label">Rendement net</div></div>
+      <div class="sim-kpi"><div class="sim-kpi-val ${cfNet>=0?'green':'red'}">${cfNet>=0?'+':''}${Math.round(cfNet)}€</div><div class="sim-kpi-label">Cashflow net/mois</div></div>
+      <div class="sim-kpi"><div class="sim-kpi-val">${fmtP(rendBrut)}</div><div class="sim-kpi-label">Rendement brut</div></div>
+      <div class="sim-kpi"><div class="sim-kpi-val">${Math.round(mensualite)}€</div><div class="sim-kpi-label">Mensualité crédit</div></div>
+      <div class="sim-kpi"><div class="sim-kpi-val">${fmtP(tri)}</div><div class="sim-kpi-label">TRI estimé ${duree}ans</div></div>
+      <div class="sim-kpi"><div class="sim-kpi-val">${fmt(emprunt)}</div><div class="sim-kpi-label">Emprunt total</div></div>
+    </div>
+    <div class="verdict verdict-${verdict}">${verdictTxt}</div>
+  `;
+
+  // Projection chart
+  const years=Array.from({length:duree+1},(_,i)=>i);
+  const patrimoine=years.map(y=>Math.round(apport+notaire+travaux+(loyerAnnuelNet-mensualite*12)*y+prix*(Math.pow(1.02,y)-1)));
+  const dette=years.map(y=>{let d=emprunt;for(let m=0;m<y*12;m++){d=d*(1+tauxM)-mensualite;}return Math.max(0,Math.round(d));});
+  const fonds=years.map((y,i)=>Math.round(patrimoine[i]-dette[i]));
+
+  destroyChart('chartSim');
+  charts.chartSim=new Chart(document.getElementById('chartSim'),{
+    type:'line',
+    data:{
+      labels:years.map(y=>'An '+y),
+      datasets:[
+        {label:'Valeur bien',data:patrimoine,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,.08)',fill:true,tension:.4,pointRadius:2},
+        {label:'Capital restant dû',data:dette,borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,.05)',fill:true,tension:.4,pointRadius:2},
+        {label:'Fonds propres',data:fonds,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.06)',fill:true,tension:.4,pointRadius:2}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtK(v)}}}}
+  });
+
+  renderSimImpact();
+}
+
+function renderSimImpact(){
+  const loyersM=biens.reduce((s,b)=>s+(b.vacant?0:b.loyer),0);
+  const cfM=biens.reduce((s,b)=>s+(b.vacant?0:b.loyer-b.charges-b.credit),0);
+  const totalV=biens.reduce((s,b)=>s+b.valeur,0);
+  const simLoyer=+document.getElementById('s-loyer').value||0;
+  const simCharges=+document.getElementById('s-charges').value||0;
+  const simPrix=+document.getElementById('s-prix').value||0;
+  const simTaux=+document.getElementById('s-taux').value||0;
+  const simDuree=+document.getElementById('s-duree').value||20;
+  const simApport=+document.getElementById('s-apport').value||0;
+  const simNotaire=+document.getElementById('s-notaire').value||0;
+  const emprunt=simPrix-simApport+simNotaire;
+  const tauxM=simTaux/100/12;const n=simDuree*12;
+  const mens=tauxM>0?emprunt*(tauxM*Math.pow(1+tauxM,n))/(Math.pow(1+tauxM,n)-1):emprunt/n;
+
+  document.getElementById('sim-impact').innerHTML=`
+    <table class="data-table">
+      <thead><tr><th>Indicateur</th><th class="r">Avant acquisition</th><th class="r">Après acquisition</th><th class="r">Variation</th></tr></thead>
+      <tbody>
+        ${[
+          ["Nombre de biens",biens.length,biens.length+1,'+1'],
+          ["Loyers mensuels",fmt(loyersM),fmt(loyersM+simLoyer),`<span class="green">+${fmt(simLoyer)}</span>`],
+          ["Cashflow net/mois",fmt(cfM),fmt(cfM+simLoyer-simCharges-Math.round(mens)),`<span class="${cfM+simLoyer-simCharges-Math.round(mens)>=cfM?'green':'red'}">${cfM+simLoyer-simCharges-Math.round(mens)>=cfM?'+':''}${fmt(simLoyer-simCharges-Math.round(mens))}</span>`],
+          ["Valeur du parc",fmtK(totalV),fmtK(totalV+simPrix),`<span class="green">+${fmtK(simPrix)}</span>`]
+        ].map(([k,a,b,d])=>`<tr><td>${k}</td><td class="r" style="color:var(--text3)">${a}</td><td class="r" style="font-weight:500">${b}</td><td class="r">${d}</td></tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ============================================================
+// IMPORT & FORM
+// ============================================================
+const FIELDS=[
+  {id:'f-name',label:'Nom du bien',req:true,type:'text',placeholder:'ex: Studio Oberkampf',full:true},
+  {id:'f-type',label:'Type',req:true,type:'select',opts:['Studio','T1','T2','T3','T4+','Commercial','Parking','Autre']},
+  {id:'f-surface',label:'Surface (m²)',req:true,type:'number',placeholder:'28'},
+  {id:'f-ville',label:'Ville / quartier',req:true,type:'text',placeholder:'Paris 11e'},
+  {id:'f-achat',label:"Prix d'achat (€)",req:true,type:'number',placeholder:'185000'},
+  {id:'f-valeur',label:'Valeur actuelle (€)',req:true,type:'number',placeholder:'210000'},
+  {id:'f-loyer',label:'Loyer mensuel (€)',req:false,type:'number',placeholder:'820'},
+  {id:'f-charges',label:'Charges/mois (€)',req:false,type:'number',placeholder:'120'},
+  {id:'f-credit',label:'Crédit/mois (€)',req:false,type:'number',placeholder:'480'},
+  {id:'f-rend_brut',label:'Rendement brut (%)',req:false,type:'number',step:'0.1',placeholder:'5.3'},
+  {id:'f-rend_net',label:'Rendement net (%)',req:false,type:'number',step:'0.1',placeholder:'6.1'},
+  {id:'f-locataire',label:'Locataire',req:false,type:'text',placeholder:'M. Dupont'},
+  {id:'f-bail',label:'Date bail (AAAA-MM)',req:false,type:'text',placeholder:'2024-09'},
+  {id:'f-dpe',label:'DPE',req:false,type:'select',opts:['A','B','C','D','E','F','G','—']},
+  {id:'f-vacant',label:'Bien vacant ?',req:false,type:'select',opts:['Non','Oui']},
+];
+
+function buildForm(container,vals){
+  container.innerHTML=`<div class="form-grid">${
+    FIELDS.map(f=>`
+      <div class="form-group${f.full?' full':''}">
+        <label class="form-label">${f.label}${f.req?'<span>*</span>':''}</label>
+        ${f.type==='select'?
+          `<select id="${f.id}" class="form-input"><option value="">—</option>${f.opts.map(o=>`<option value="${o}" ${vals&&(String(vals[f.id.replace('f-','')])||'')===o?'selected':''}>${o}</option>`).join('')}</select>`:
+          `<input type="${f.type}" id="${f.id}" class="form-input" placeholder="${f.placeholder||''}" ${f.step?'step="'+f.step+'"':''} value="${vals&&vals[f.id.replace('f-','')]!=null?vals[f.id.replace('f-','')]:''}">` }
+      </div>`).join('')
+  }</div>`;
+}
+
+function renderImport(){
+  buildForm(document.getElementById('add-form'),null);
+  const el=document.getElementById('import-bien-list');
+  el.innerHTML=biens.length?biens.map((b,i)=>`
+    <div class="bien-row">
+      <div class="bien-dot" style="background:${color(i)}"></div>
+      <div class="bien-info"><div class="bien-name">${b.name}</div><div class="bien-meta">${b.type} · ${b.ville}</div></div>
+      <button class="icon-btn del" onclick="deleteBien(${i})" title="Supprimer">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </div>`).join(''):`<div class="empty"><div class="empty-icon">📭</div><p>Aucun bien</p></div>`;
+}
+
+function saveBien(){
+  const get=id=>document.getElementById(id)?.value?.trim()||'';
+  if(!get('f-name')||!get('f-type')||!get('f-surface')||!get('f-achat')||!get('f-valeur')){
+    alert('Veuillez remplir les champs obligatoires (*)');return;
+  }
+  const b={
+    id:Date.now(),
+    name:get('f-name'),type:get('f-type')||'Studio',surface:+get('f-surface')||0,
+    ville:get('f-ville')||'—',achat:+get('f-achat')||0,valeur:+get('f-valeur')||0,
+    loyer:+get('f-loyer')||0,charges:+get('f-charges')||0,credit:+get('f-credit')||0,
+    rend_brut:+get('f-rend_brut')||0,rend_net:+get('f-rend_net')||0,
+    locataire:get('f-locataire')||'—',bail:get('f-bail')||'—',
+    dpe:get('f-dpe')||'—',vacant:get('f-vacant')==='Oui'
+  };
+  biens.push(b);save();
+  resetForm();
+  alert(`✅ "${b.name}" ajouté avec succès !`);
+}
+
+function resetForm(){buildForm(document.getElementById('add-form'),null);}
+
+// ============================================================
+// MODAL EDIT
+// ============================================================
+function openModal(mode,idx){
+  editIdx=idx!=null?idx:null;
+  const b=idx!=null?biens[idx]:null;
+  document.getElementById('modal-title').textContent=mode==='edit'?'Modifier le bien':'Nouveau bien';
+  const body=document.getElementById('modal-body');
+  const vals=b?{
+    name:b.name,type:b.type,surface:b.surface,ville:b.ville,
+    achat:b.achat,valeur:b.valeur,loyer:b.loyer,charges:b.charges,
+    credit:b.credit,'rend_brut':b.rend_brut,'rend_net':b.rend_net,
+    locataire:b.locataire,bail:b.bail,dpe:b.dpe,vacant:b.vacant?'Oui':'Non'
+  }:null;
+  buildForm(body,vals);
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeModal(){document.getElementById('edit-modal').classList.remove('open');editIdx=null;}
+
+function saveModal(){
+  const get=id=>document.getElementById(id)?.value?.trim()||'';
+  if(!get('f-name')||!get('f-achat')||!get('f-valeur')){alert('Champs obligatoires manquants');return;}
+  const b={
+    id:editIdx!=null?biens[editIdx].id:Date.now(),
+    name:get('f-name'),type:get('f-type')||'Studio',surface:+get('f-surface')||0,
+    ville:get('f-ville')||'—',achat:+get('f-achat')||0,valeur:+get('f-valeur')||0,
+    loyer:+get('f-loyer')||0,charges:+get('f-charges')||0,credit:+get('f-credit')||0,
+    rend_brut:+get('f-rend_brut')||0,rend_net:+get('f-rend_net')||0,
+    locataire:get('f-locataire')||'—',bail:get('f-bail')||'—',
+    dpe:get('f-dpe')||'—',vacant:get('f-vacant')==='Oui'
+  };
+  if(editIdx!=null)biens[editIdx]=b;else biens.push(b);
+  save();closeModal();
+}
+
+// ============================================================
+// DELETE / CLEAR
+// ============================================================
+function deleteBien(i){
+  if(!confirm(`Supprimer "${biens[i].name}" ?`))return;
+  biens.splice(i,1);save();
+}
+function clearAll(){if(!confirm('Effacer tous les biens ?'))return;biens=[];save();}
+function loadDemo(){if(!confirm('Charger les données démo ? (remplace les biens actuels)'))return;biens=JSON.parse(JSON.stringify(DEMO));save();}
+
+// ============================================================
+// CSV
+// ============================================================
+function exportCSV(){
+  const headers=['nom','type','surface','ville','prix_achat','valeur_actuelle','loyer','charges','credit','vacant','rend_brut','rend_net','locataire','bail','dpe'];
+  const rows=biens.map(b=>[b.name,b.type,b.surface,b.ville,b.achat,b.valeur,b.loyer,b.charges,b.credit,b.vacant?1:0,b.rend_brut,b.rend_net,b.locataire,b.bail,b.dpe].map(v=>`"${v}"`).join(','));
+  const csv=[headers.join(','),...rows].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent('\uFEFF'+csv);
+  a.download='mon_parc_immobilier.csv';a.click();
+}
+
+function downloadTemplate(){
+  const headers=['nom','type','surface','ville','prix_achat','valeur_actuelle','loyer','charges','credit','vacant','rend_brut','rend_net','locataire','bail','dpe'];
+  const example=['"Studio République","Studio",28,"Paris 11e",185000,210000,820,120,480,0,5.3,6.1,"M. Martin","2024-09","E"'];
+  const csv=[headers.join(','),...example].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent('\uFEFF'+csv);
+  a.download='template_parc_immobilier.csv';a.click();
+}
+
+function importCSV(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.split('\n').filter(l=>l.trim());
+    const headers=lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+    let added=0;
+    for(let i=1;i<lines.length;i++){
+      const vals=lines[i].match(/(".*?"|[^,]+)/g)||[];
+      const clean=vals.map(v=>v.replace(/"/g,'').trim());
+      if(clean.length<2)continue;
+      biens.push({
+        id:Date.now()+i,
+        name:clean[0]||'Bien '+i,type:clean[1]||'Studio',surface:+clean[2]||0,
+        ville:clean[3]||'—',achat:+clean[4]||0,valeur:+clean[5]||0,
+        loyer:+clean[6]||0,charges:+clean[7]||0,credit:+clean[8]||0,
+        vacant:clean[9]==='1',rend_brut:+clean[10]||0,rend_net:+clean[11]||0,
+        locataire:clean[12]||'—',bail:clean[13]||'—',dpe:clean[14]||'—'
+      });added++;
+    }
+    save();alert(`✅ ${added} bien${added>1?'s':''} importé${added>1?'s':''} !`);
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+// INIT
+updateSidebar();
+renderOverview();
+runSim();
+</script>
+</body>
+</html>
